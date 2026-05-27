@@ -63,6 +63,14 @@ data class JoinProjectRequest(
     val id: String = "#JR-${(1000..9999).random()}"
 )
 
+data class TaclobanNotification(
+    val title: String,
+    val message: String,
+    val timestamp: String = java.text.SimpleDateFormat("h:mm a", java.util.Locale.getDefault()).format(java.util.Date()),
+    val isRead: Boolean = false,
+    val type: String = "INFO" // INFO, ALERT, SUCCESS
+)
+
 sealed class Screen {
     data object Login : Screen()
     data object SignUp : Screen()

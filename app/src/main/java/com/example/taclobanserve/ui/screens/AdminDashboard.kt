@@ -53,6 +53,7 @@ fun AdminDashboard(
 ) {
     var selectedBottomTab by remember { mutableIntStateOf(0) }
     var selectedEventTab by remember { mutableIntStateOf(0) }
+    var showNotifications by remember { mutableStateOf(false) }
     val themeOrange = Color(0xFFF4511E)
 
     Scaffold(
@@ -76,16 +77,22 @@ fun AdminDashboard(
                     }
                 },
                 actions = {
-                    Box(modifier = Modifier.padding(end = 16.dp)) {
+                    Box(
+                        modifier = Modifier
+                            .padding(end = 16.dp)
+                            .clickable { showNotifications = !showNotifications }
+                    ) {
                         Text("🔔", fontSize = 24.sp)
-                        Surface(
-                            modifier = Modifier
-                                .size(10.dp)
-                                .align(Alignment.TopEnd),
-                            color = themeOrange,
-                            shape = CircleShape,
-                            border = BorderStroke(1.dp, Color.White)
-                        ) {}
+                        if (joinRequests.isNotEmpty() || checkIns.any { it.status != "VERIFIED" }) {
+                            Surface(
+                                modifier = Modifier
+                                    .size(10.dp)
+                                    .align(Alignment.TopEnd),
+                                color = themeOrange,
+                                shape = CircleShape,
+                                border = BorderStroke(1.dp, Color.White)
+                            ) {}
+                        }
                     }
                 }
             )
@@ -103,31 +110,99 @@ fun AdminDashboard(
             }
         }
     ) { innerPadding ->
-        Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(Color(0xFFFAFAFA))) {
-            if (selectedBottomTab == 0) {
-                TabRow(selectedTabIndex = selectedEventTab, containerColor = Color.White, contentColor = themeOrange, indicator = { tabPositions -> TabRowDefaults.SecondaryIndicator(Modifier.tabIndicatorOffset(tabPositions[selectedEventTab]), color = themeOrange) }) {
-                    Tab(selected = selectedEventTab == 0, onClick = { selectedEventTab = 0 }, text = { Text("Create Event", fontWeight = FontWeight.Bold) })
-                    Tab(selected = selectedEventTab == 1, onClick = { selectedEventTab = 1 }, text = { Text("View Events", fontWeight = FontWeight.Bold) })
+        Box(modifier = Modifier.padding(innerPadding)) {
+            Column(modifier = Modifier.fillMaxSize().background(Color(0xFFFAFAFA))) {
+                if (selectedBottomTab == 0) {
+                    TabRow(selectedTabIndex = selectedEventTab, containerColor = Color.White, contentColor = themeOrange, indicator = { tabPositions -> TabRowDefaults.SecondaryIndicator(Modifier.tabIndicatorOffset(tabPositions[selectedEventTab]), color = themeOrange) }) {
+                        Tab(selected = selectedEventTab == 0, onClick = { selectedEventTab = 0 }, text = { Text("Create Event", fontWeight = FontWeight.Bold) })
+                        Tab(selected = selectedEventTab == 1, onClick = { selectedEventTab = 1 }, text = { Text("View Events", fontWeight = FontWeight.Bold) })
+                    }
+                }
+
+                Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp)) {
+                    when (selectedBottomTab) {
+                        0 -> {
+                            if (selectedEventTab == 0) {
+                                EventCreationConsole(themeOrange = themeOrange, onEventCreated = { newEvent -> events.add(0, newEvent); selectedEventTab = 1 })
+                            } else {
+                                EventViewHub(themeOrange, events, joinedMissions, users, checkIns, userGpsSim, onViewEventMap, onEditEvent, onQuickUpdateEvent)
+                            }
+                        }
+                        1 -> UsersContent(users, themeOrange, onNavigateToUserProfile)
+                        2 -> AttendanceVerification(themeOrange, checkIns, joinRequests, events, userGpsSim, onApproveJoin)
+                        3 -> SettingsContent()
+                    }
                 }
             }
 
-            Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp)) {
-                when (selectedBottomTab) {
-                    0 -> {
-                        if (selectedEventTab == 0) {
-                            EventCreationConsole(themeOrange = themeOrange, onEventCreated = { newEvent -> events.add(0, newEvent); selectedEventTab = 1 })
-                        } else {
-                            EventViewHub(themeOrange, events, joinedMissions, users, checkIns, userGpsSim, onViewEventMap, onEditEvent, onQuickUpdateEvent)
-                        }
-                    }
-                    1 -> UsersContent(users, themeOrange, onNavigateToUserProfile)
-                    2 -> AttendanceVerification(themeOrange, checkIns, joinRequests, events, userGpsSim, onApproveJoin)
-                    3 -> SettingsContent()
+            if (showNotifications) {
+                AdminNotificationDropdown(
+                    onDismiss = { showNotifications = false },
+                    themeOrange = themeOrange,
+                    joinRequestsCount = joinRequests.size,
+                    pendingCheckInsCount = checkIns.count { it.status != "VERIFIED" }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun AdminNotificationDropdown(
+    onDismiss: () -> Unit, 
+    themeOrange: Color,
+    joinRequestsCount: Int,
+    pendingCheckInsCount: Int
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .clickable { onDismiss() }
+            .background(Color.Black.copy(alpha = 0.1f)),
+        contentAlignment = Alignment.TopEnd
+    ) {
+        Card(
+            modifier = Modifier
+                .width(280.dp)
+                .padding(top = 8.dp, end = 16.dp)
+                .clickable(enabled = false) { },
+            shape = RoundedCornerShape(12.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    "Admin Alerts",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    color = Color.Black
+                )
+                Spacer(Modifier.height(12.dp))
+                
+                if (joinRequestsCount > 0) {
+                    NotificationItem("Enrollment", "$joinRequestsCount new volunteers waiting for approval.", "Just now", themeOrange)
+                    HorizontalDivider(color = Color(0xFFF5F5F5), modifier = Modifier.padding(vertical = 8.dp))
+                }
+                
+                if (pendingCheckInsCount > 0) {
+                    NotificationItem("Verification", "$pendingCheckInsCount attendance records need review.", "2 mins ago", themeOrange)
+                    HorizontalDivider(color = Color(0xFFF5F5F5), modifier = Modifier.padding(vertical = 8.dp))
+                }
+
+                NotificationItem("System", "Server sync complete. Geofences updated.", "1 hour ago", Color.Gray)
+                
+                Spacer(Modifier.height(16.dp))
+                TextButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                ) {
+                    Text("Close", color = themeOrange, fontWeight = FontWeight.Bold)
                 }
             }
         }
     }
 }
+
 
 data class TaclobanArea(val name: String, val coords: String)
 

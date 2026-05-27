@@ -4,6 +4,7 @@ package com.example.taclobanserve.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -21,7 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.taclobanserve.TaclobanEvent
 import com.example.taclobanserve.JoinProjectRequest
-import com.example.taclobanserve.ui.utils.toTimeString
+import com.example.taclobanserve.ui.utils.*
 
 @Composable
 fun VolunteerDashboard(
@@ -37,6 +38,7 @@ fun VolunteerDashboard(
     onNavigateToProfile: () -> Unit
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
+    var showNotifications by remember { mutableStateOf(false) }
     val tabs = listOf("Smart Matches", "Active Events", "Joined Events")
     val themeOrange = Color(0xFFF4511E) 
 
@@ -64,16 +66,29 @@ fun VolunteerDashboard(
                     }
                 },
                 actions = {
-                    Surface(
-                        modifier = Modifier.size(40.dp),
-                        color = Color(0xFFFFF3E0),
-                        shape = CircleShape
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Text("🔔", fontSize = 18.sp)
+                    Box(modifier = Modifier.padding(end = 8.dp)) {
+                        Surface(
+                            modifier = Modifier.size(40.dp),
+                            color = Color(0xFFFFF3E0),
+                            shape = CircleShape,
+                            onClick = { showNotifications = !showNotifications }
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text("🔔", fontSize = 18.sp)
+                            }
                         }
+                        // Notification Badge
+                        Surface(
+                            modifier = Modifier
+                                .size(10.dp)
+                                .align(Alignment.TopEnd)
+                                .offset(x = (-2).dp, y = 2.dp),
+                            color = themeOrange,
+                            shape = CircleShape,
+                            border = BorderStroke(1.dp, Color.White)
+                        ) {}
                     }
-                    Spacer(Modifier.width(8.dp))
+                    
                     Surface(
                         modifier = Modifier.size(40.dp),
                         color = Color.LightGray,
@@ -96,52 +111,105 @@ fun VolunteerDashboard(
             }
         }
     ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .padding(innerPadding)
-                .fillMaxSize()
-                .background(Color(0xFFFAFAFA))
-        ) {
-            TabRow(
-                selectedTabIndex = selectedTab,
-                containerColor = Color.White,
-                contentColor = themeOrange,
-                indicator = { tabPositions ->
-                    if (selectedTab < tabPositions.size) {
-                        TabRowDefaults.SecondaryIndicator(
-                            modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
-                            color = themeOrange
-                        )
-                    }
-                },
-                divider = {}
-            ) {
-                tabs.forEachIndexed { index, title ->
-                    Tab(
-                        selected = selectedTab == index,
-                        onClick = { selectedTab = index },
-                        text = { 
-                            Text(
-                                text = title,
-                                color = if (selectedTab == index) themeOrange else Color.Gray,
-                                fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.Medium,
-                                fontSize = 13.sp
-                            )
-                        }
-                    )
-                }
-            }
-
+        Box(modifier = Modifier.padding(innerPadding)) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(16.dp)
+                    .background(Color(0xFFFAFAFA))
             ) {
-                when (selectedTab) {
-                    0 -> SmartMatchesContent(skills, events, joinedEvents, pendingJoinRequests, joinedMissions, onJoinEvent, themeOrange)
-                    1 -> ActiveEventsContent(events, joinedEvents, pendingJoinRequests, joinedMissions, onJoinEvent, themeOrange)
-                    2 -> JoinedEventsContent(joinedEvents, onNavigateToMap, themeOrange)
+                TabRow(
+                    selectedTabIndex = selectedTab,
+                    containerColor = Color.White,
+                    contentColor = themeOrange,
+                    indicator = { tabPositions ->
+                        if (selectedTab < tabPositions.size) {
+                            TabRowDefaults.SecondaryIndicator(
+                                modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
+                                color = themeOrange
+                            )
+                        }
+                    },
+                    divider = {}
+                ) {
+                    tabs.forEachIndexed { index, title ->
+                        Tab(
+                            selected = selectedTab == index,
+                            onClick = { selectedTab = index },
+                            text = { 
+                                Text(
+                                    text = title,
+                                    color = if (selectedTab == index) themeOrange else Color.Gray,
+                                    fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.Medium,
+                                    fontSize = 13.sp
+                                )
+                            }
+                        )
+                    }
+                }
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp)
+                ) {
+                    when (selectedTab) {
+                        0 -> SmartMatchesContent(skills, events, joinedEvents, pendingJoinRequests, joinedMissions, onJoinEvent, themeOrange)
+                        1 -> ActiveEventsContent(events, joinedEvents, pendingJoinRequests, joinedMissions, onJoinEvent, themeOrange)
+                        2 -> JoinedEventsContent(joinedEvents, onNavigateToMap, themeOrange)
+                    }
+                }
+            }
+
+            if (showNotifications) {
+                NotificationDropdown(
+                    onDismiss = { showNotifications = false },
+                    themeOrange = themeOrange
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun NotificationDropdown(onDismiss: () -> Unit, themeOrange: Color) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .clickable { onDismiss() }
+            .background(Color.Black.copy(alpha = 0.1f)),
+        contentAlignment = Alignment.TopEnd
+    ) {
+        Card(
+            modifier = Modifier
+                .width(280.dp)
+                .padding(top = 8.dp, end = 16.dp)
+                .clickable(enabled = false) { }, // Prevent clicking through to the background
+            shape = RoundedCornerShape(12.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    "Notifications",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    color = Color.Black
+                )
+                Spacer(Modifier.height(12.dp))
+                
+                NotificationItem("System", "Welcome to TaclobanServe!", "10:00 AM", themeOrange)
+                HorizontalDivider(color = Color(0xFFF5F5F5), modifier = Modifier.padding(vertical = 8.dp))
+                NotificationItem("Update", "New relief mission posted in San Jose.", "11:30 AM", themeOrange)
+                HorizontalDivider(color = Color(0xFFF5F5F5), modifier = Modifier.padding(vertical = 8.dp))
+                NotificationItem("Alert", "Geofence active for 'Rice Distribution'.", "1:45 PM", themeOrange)
+                
+                Spacer(Modifier.height(16.dp))
+                TextButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                ) {
+                    Text("Close", color = themeOrange, fontWeight = FontWeight.Bold)
                 }
             }
         }

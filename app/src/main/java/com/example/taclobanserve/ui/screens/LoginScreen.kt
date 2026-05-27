@@ -232,7 +232,11 @@ fun LoginScreen(
                         if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
                             errorMessage = "Invalid email format"
                         } else if (isAdmin) {
-                            if (email == "admin@taclobanserve.ph" && password == "admin123") {
+                            val validAdmins = mapOf(
+                                "admin@taclobanserve.ph" to "admin123",
+                                "admin2@taclobanserve.ph" to "admin456"
+                            )
+                            if (validAdmins[email] == password) {
                                 onLoginSuccess(null, true)
                             } else {
                                 errorMessage = "Invalid Admin Credentials"
