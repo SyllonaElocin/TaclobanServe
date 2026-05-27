@@ -261,7 +261,6 @@ fun VolunteerHistoryScreen(
             Spacer(modifier = Modifier.height(24.dp))
         }
     }
-}
 
 data class BadgeData(val name: String, val progress: Float, val icon: String)
 

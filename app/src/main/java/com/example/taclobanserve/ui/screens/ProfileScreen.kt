@@ -13,12 +13,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.taclobanserve.CheckInRequest
 import com.example.taclobanserve.TaclobanUser
+import com.example.taclobanserve.ui.utils.exportProfileToPdf
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -27,6 +29,7 @@ fun ProfileScreen(
     checkIns: List<CheckInRequest>,
     onNavigateBack: () -> Unit
 ) {
+    val context = LocalContext.current
     val themeOrange = Color(0xFFF4511E)
     val navyDark = Color(0xFF0F172A)
     
@@ -157,6 +160,13 @@ fun ProfileScreen(
 
                 Text(displayUser.name, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = navyDark)
                 Text(
+                    "Volunteer ID: ${displayUser.volunteerId}",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Gray,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+                Text(
                     "Verified Volunteer since ${displayUser.joinedYear}",
                     fontSize = 14.sp,
                     color = themeOrange,
@@ -270,7 +280,7 @@ fun ProfileScreen(
                 Spacer(modifier = Modifier.height(32.dp))
 
                 Button(
-                    onClick = {},
+                    onClick = { exportProfileToPdf(context, displayUser, verifiedCheckIns) },
                     modifier = Modifier.fillMaxWidth().height(56.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = themeOrange),
                     shape = RoundedCornerShape(12.dp)

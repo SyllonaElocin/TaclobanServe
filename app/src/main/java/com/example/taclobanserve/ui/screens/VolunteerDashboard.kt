@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+
 package com.example.taclobanserve.ui.screens
 
 import androidx.compose.foundation.BorderStroke
@@ -21,7 +23,6 @@ import com.example.taclobanserve.TaclobanEvent
 import com.example.taclobanserve.JoinProjectRequest
 import com.example.taclobanserve.ui.utils.toTimeString
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun VolunteerDashboard(
     skills: List<String> = listOf("Medical", "Logistics"), // Demo skills
@@ -147,7 +148,6 @@ fun VolunteerDashboard(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SmartMatchesContent(
     userSkills: List<String>, 
@@ -253,7 +253,9 @@ fun SmartMatchesContent(
                 themeColor = themeOrange,
                 isJoinable = !isJoined && !isPending && !hasEnded,
                 imageUri = event.imageUri,
-                onJoin = { onJoinEvent(event) }
+                onJoin = { onJoinEvent(event) },
+                professions = event.professions,
+                skills = event.tags
             )
             Spacer(Modifier.height(16.dp))
         }
@@ -311,7 +313,9 @@ fun ActiveEventsContent(
                 themeColor = themeOrange,
                 isJoinable = !isJoined && !isPending && !hasEnded,
                 imageUri = event.imageUri,
-                onJoin = { onJoinEvent(event) }
+                onJoin = { onJoinEvent(event) },
+                professions = event.professions,
+                skills = event.tags
             )
             Spacer(Modifier.height(16.dp))
         }
@@ -343,7 +347,9 @@ fun JoinedEventsContent(joinedEvents: List<TaclobanEvent>, onCheckIn: (TaclobanE
                 isJoinable = true, // Set to true so button is enabled
                 imageUri = event.imageUri,
                 onJoin = { onCheckIn(event) },
-                buttonText = "Check In at Site"
+                buttonText = "Check In at Site",
+                professions = event.professions,
+                skills = event.tags
             )
             Spacer(Modifier.height(16.dp))
         }
@@ -372,7 +378,7 @@ fun ProjectCard(
     title: String,
     description: String,
     distance: String,
-    duration: String, // Added duration
+    duration: String, 
     time: String,
     spots: String,
     matchPercent: String,
@@ -382,7 +388,9 @@ fun ProjectCard(
     isJoinable: Boolean,
     imageUri: String? = null,
     onJoin: () -> Unit,
-    buttonText: String? = null // New prop
+    buttonText: String? = null,
+    professions: List<String> = emptyList(),
+    skills: List<String> = emptyList()
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -432,6 +440,22 @@ fun ProjectCard(
                     fontSize = 14.sp,
                     lineHeight = 20.sp
                 )
+
+                if (professions.isNotEmpty() || skills.isNotEmpty()) {
+                    Spacer(Modifier.height(12.dp))
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        professions.forEach { prof ->
+                            Surface(color = themeColor.copy(alpha = 0.1f), shape = CircleShape) {
+                                Text(prof, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = themeColor)
+                            }
+                        }
+                        skills.forEach { skill ->
+                            Surface(color = Color(0xFFF5F5F5), shape = CircleShape) {
+                                Text(skill, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), fontSize = 10.sp, color = Color.Gray)
+                            }
+                        }
+                    }
+                }
                 
                 Spacer(Modifier.height(16.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {

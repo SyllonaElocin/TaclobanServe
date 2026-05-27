@@ -32,11 +32,25 @@ fun EditEventScreen(
     var description by remember { mutableStateOf(event.description) }
     var hours by remember { mutableStateOf(event.hours) }
     var volunteers by remember { mutableStateOf(event.volunteers) }
-    var selectedTags by remember { mutableStateOf(event.tags.toSet()) }
+    var selectedProfessions by remember { mutableStateOf(event.professions.toSet()) }
+    var selectedSkills by remember { mutableStateOf(event.tags.toSet()) }
     var selectedImageUri by remember { mutableStateOf(event.imageUri) }
     
     val themeOrange = Color(0xFFF4511E)
-    val tagOptions = listOf("Medical", "Logistics", "Education", "IT", "Environment")
+    val professionOptions = listOf(
+        "Logistics & Supply Chain", 
+        "Medical & Healthcare", 
+        "Education & Training", 
+        "Information Technology", 
+        "Manufacturing & Engineering"
+    )
+    val skillOptions = listOf(
+        "Driving", "Heavy Lifting", "Inventory Management", "Route Planning",
+        "First Aid", "CPR", "Nursing", "Psychological Support", "Emergency Triage",
+        "Teaching", "Tutoring", "Storytelling", "Childcare", "Curriculum Dev",
+        "Networking", "Hardware Repair", "Data Entry", "Software Dev", "Radio Comms",
+        "Welding", "Machining", "CAD", "Safety Inspection", "Assembly"
+    )
     val taclobanAreas = listOf(
         TaclobanArea("Downtown (City Hall Area)", "11.2433, 125.0012"),
         TaclobanArea("San Jose (Airport District)", "11.2268, 125.0275"),
@@ -107,11 +121,20 @@ fun EditEventScreen(
             OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("Description") }, modifier = Modifier.fillMaxWidth().height(120.dp), shape = RoundedCornerShape(10.dp))
             
             Spacer(Modifier.height(16.dp))
-            Text("Skills / Tags", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+            Text("Target Professions", fontSize = 14.sp, fontWeight = FontWeight.Bold)
             FlowRow(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                tagOptions.forEach { tag ->
-                    val isSelected = selectedTags.contains(tag)
-                    FilterChip(selected = isSelected, onClick = { selectedTags = if (isSelected) selectedTags - tag else selectedTags + tag }, label = { Text(tag) })
+                professionOptions.forEach { prof ->
+                    val isSelected = selectedProfessions.contains(prof)
+                    FilterChip(selected = isSelected, onClick = { selectedProfessions = if (isSelected) selectedProfessions - prof else selectedProfessions + prof }, label = { Text(prof) })
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            Text("Required Skills", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+            FlowRow(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                skillOptions.forEach { skill ->
+                    val isSelected = selectedSkills.contains(skill)
+                    FilterChip(selected = isSelected, onClick = { selectedSkills = if (isSelected) selectedSkills - skill else selectedSkills + skill }, label = { Text(skill) })
                 }
             }
 
@@ -123,7 +146,7 @@ fun EditEventScreen(
 
             Spacer(Modifier.height(16.dp))
             ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }, modifier = Modifier.fillMaxWidth()) {
-                OutlinedTextField(value = selectedArea.name, onValueChange = {}, readOnly = true, label = { Text("Geofence Area") }, trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) }, colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(), modifier = Modifier.menuAnchor().fillMaxWidth(), shape = RoundedCornerShape(10.dp))
+                OutlinedTextField(value = selectedArea.name, onValueChange = {}, readOnly = true, label = { Text("Geofence Area") }, trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) }, colors = OutlinedTextFieldDefaults.colors(), modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable, true).fillMaxWidth(), shape = RoundedCornerShape(10.dp))
                 ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                     taclobanAreas.forEach { area -> DropdownMenuItem(text = { Text(area.name) }, onClick = { selectedArea = area; expanded = false }) }
                 }
@@ -138,7 +161,8 @@ fun EditEventScreen(
                         hours = hours, 
                         volunteers = volunteers, 
                         area = selectedArea.name, 
-                        tags = selectedTags.toList(), 
+                        professions = selectedProfessions.toList(),
+                        tags = selectedSkills.toList(),
                         imageUri = selectedImageUri
                     ))
                 },

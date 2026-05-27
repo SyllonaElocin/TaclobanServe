@@ -7,6 +7,7 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -137,26 +138,75 @@ fun EventCreationConsole(themeOrange: Color, onEventCreated: (TaclobanEvent) -> 
     var hours by remember { mutableStateOf("") }
     var volunteers by remember { mutableStateOf("") }
     var durationHours by remember { mutableStateOf("2") } // Default 2 hours
-    var selectedTags by remember { mutableStateOf(setOf<String>()) }
+    var selectedProfessions by remember { mutableStateOf(setOf<String>()) }
+    var selectedSkills by remember { mutableStateOf(setOf<String>()) }
     var selectedImageUri by remember { mutableStateOf<String?>(null) }
-    val tagOptions = listOf("Medical", "Logistics", "Education", "IT", "Environment")
+    
+    val professionOptions = listOf(
+        "Logistics & Supply Chain", 
+        "Medical & Healthcare", 
+        "Education & Training", 
+        "Information Technology", 
+        "Manufacturing & Engineering"
+    )
+    val skillOptions = listOf(
+        "Driving", "Heavy Lifting", "Inventory Management", "Route Planning",
+        "First Aid", "CPR", "Nursing", "Psychological Support", "Emergency Triage",
+        "Teaching", "Tutoring", "Storytelling", "Childcare", "Curriculum Dev",
+        "Networking", "Hardware Repair", "Data Entry", "Software Dev", "Radio Comms",
+        "Welding", "Machining", "CAD", "Safety Inspection", "Assembly"
+    )
+
     val taclobanAreas = listOf(TaclobanArea("Downtown (City Hall Area)", "11.2433, 125.0012"), TaclobanArea("San Jose (Airport District)", "11.2268, 125.0275"), TaclobanArea("Abucay (New Bus Terminal)", "11.2445, 124.9812"), TaclobanArea("Sagkahan (Astrodome)", "11.2312, 125.0050"), TaclobanArea("Marasbaras (Robinsons Area)", "11.2155, 125.0035"), TaclobanArea("V&G Subdivision", "11.2290, 124.9780"), TaclobanArea("Caibaan", "11.2100, 124.9850"), TaclobanArea("Utap", "11.2380, 124.9890"))
     var expanded by remember { mutableStateOf(false) }
     var selectedArea by remember { mutableStateOf<TaclobanArea?>(null) }
     var showSuccess by remember { mutableStateOf(false) }
+
+    // Date Picker State
+    var showDatePicker by remember { mutableStateOf(false) }
+    val datePickerState = rememberDatePickerState(initialSelectedDateMillis = System.currentTimeMillis())
+    val selectedDateText = datePickerState.selectedDateMillis?.let { 
+        java.text.SimpleDateFormat("MMM dd, yyyy", java.util.Locale.getDefault()).format(java.util.Date(it))
+    } ?: "Select Date"
 
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
         onResult = { uri -> selectedImageUri = uri?.toString() }
     )
 
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
     if (showSuccess) {
         AlertDialog(onDismissRequest = { showSuccess = false }, confirmButton = { TextButton(onClick = { 
             showSuccess = false 
-            val startTime = System.currentTimeMillis()
+            val baseTime = datePickerState.selectedDateMillis ?: System.currentTimeMillis()
+            val startTime = baseTime 
             val durationMillis = (durationHours.toLongOrNull() ?: 2) * 3600000
-            onEventCreated(TaclobanEvent(title, description, hours, volunteers, selectedArea?.name ?: "Unknown", selectedTags.toList(), selectedImageUri, startTime, startTime + durationMillis))
-            title = ""; description = ""; hours = ""; volunteers = ""; selectedArea = null; selectedTags = emptySet(); selectedImageUri = null
+            onEventCreated(TaclobanEvent(
+                title = title, 
+                description = description, 
+                hours = hours, 
+                volunteers = volunteers, 
+                area = selectedArea?.name ?: "Unknown", 
+                professions = selectedProfessions.toList(),
+                tags = selectedSkills.toList(), 
+                imageUri = selectedImageUri, 
+                startTime = startTime, 
+                endTime = startTime + durationMillis
+            ))
+            title = ""; description = ""; hours = ""; volunteers = ""; selectedArea = null; selectedProfessions = emptySet(); selectedSkills = emptySet(); selectedImageUri = null
         }) { Text("OK") } }, title = { Text("Success") }, text = { Text("Event '$title' published and geofenced at ${selectedArea?.name}. Duration: $durationHours hours.") })
     }
 
@@ -195,16 +245,52 @@ fun EventCreationConsole(themeOrange: Color, onEventCreated: (TaclobanEvent) -> 
     Spacer(Modifier.height(16.dp))
     Text("Schedule Details", fontSize = 14.sp, fontWeight = FontWeight.Bold)
     Spacer(Modifier.height(8.dp))
+    
+    OutlinedTextField(
+        value = selectedDateText,
+        onValueChange = {},
+        readOnly = true,
+        label = { Text("Start Date") },
+        leadingIcon = { Text("📅") },
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(10.dp),
+        enabled = false, 
+        colors = OutlinedTextFieldDefaults.colors(
+            disabledTextColor = MaterialTheme.colorScheme.onSurface,
+            disabledBorderColor = MaterialTheme.colorScheme.outline,
+            disabledLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            disabledPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    )
+    // Overlay Box to capture clicks
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(64.dp)
+            .offset(y = (-64).dp)
+            .clickable { showDatePicker = true }
+    )
+    
+    Spacer(Modifier.height(8.dp))
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         OutlinedTextField(value = durationHours, onValueChange = { durationHours = it }, label = { Text("Duration (Hours)") }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(10.dp), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), leadingIcon = { Text("⏱️") })
         OutlinedTextField(value = hours, onValueChange = { hours = it }, label = { Text("Hrs/Wk Goal") }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(10.dp), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
     }
     Spacer(Modifier.height(16.dp))
-    Text("Skill Tags", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+    Text("Target Profession Tags", fontSize = 14.sp, fontWeight = FontWeight.Bold)
     FlowRow(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        tagOptions.forEach { tag ->
-            val isSelected = selectedTags.contains(tag)
-            FilterChip(selected = isSelected, onClick = { selectedTags = if (isSelected) selectedTags - tag else selectedTags + tag }, label = { Text(tag) })
+        professionOptions.forEach { prof ->
+            val isSelected = selectedProfessions.contains(prof)
+            FilterChip(selected = isSelected, onClick = { selectedProfessions = if (isSelected) selectedProfessions - prof else selectedProfessions + prof }, label = { Text(prof) })
+        }
+    }
+    Spacer(Modifier.height(16.dp))
+    Text("Required Skill Tags", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+    FlowRow(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        skillOptions.forEach { skill ->
+            val isSelected = selectedSkills.contains(skill)
+            FilterChip(selected = isSelected, onClick = { selectedSkills = if (isSelected) selectedSkills - skill else selectedSkills + skill }, label = { Text(skill) })
         }
     }
     Spacer(Modifier.height(16.dp))
@@ -354,7 +440,16 @@ fun EventItemCard(
                 Spacer(Modifier.height(12.dp))
                 Box(modifier = Modifier.fillMaxWidth().height(140.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFFF1F1F1)), contentAlignment = Alignment.Center) { Text("🖼️ Event Image", color = Color.Gray) }
             }
-            Spacer(Modifier.height(12.dp)); FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { event.tags.forEach { tag -> AssistChip(onClick = {}, label = { Text(tag, fontSize = 11.sp) }, shape = CircleShape) } }
+            Spacer(Modifier.height(12.dp))
+            Text("Target Professions:", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = themeOrange)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { 
+                event.professions.forEach { prof -> AssistChip(onClick = {}, label = { Text(prof, fontSize = 10.sp) }, shape = CircleShape) } 
+            }
+            Spacer(Modifier.height(8.dp))
+            Text("Required Skills:", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { 
+                event.tags.forEach { skill -> AssistChip(onClick = {}, label = { Text(skill, fontSize = 10.sp) }, shape = CircleShape) } 
+            }
             Spacer(Modifier.height(16.dp)); Row(verticalAlignment = Alignment.CenterVertically) { Text("📍", fontSize = 14.sp); Spacer(Modifier.width(8.dp)); Text(event.area, fontSize = 13.sp, color = Color.DarkGray) }
             Spacer(Modifier.height(8.dp)); Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) { Row(verticalAlignment = Alignment.CenterVertically) { Text("🕒", fontSize = 14.sp); Spacer(Modifier.width(4.dp)); Text(event.hours + "/week", fontSize = 13.sp, color = Color.Gray) }; Row(verticalAlignment = Alignment.CenterVertically) { Text("👥", fontSize = 14.sp); Spacer(Modifier.width(4.dp)); Text(event.volunteers + " spots", fontSize = 13.sp, color = Color.Gray) } }
             Spacer(Modifier.height(16.dp)); Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) { 
@@ -610,7 +705,13 @@ fun UserListItem(user: TaclobanUser, themeOrange: Color, onViewProfile: (Tacloba
             Surface(modifier = Modifier.size(52.dp), color = Color.LightGray, shape = CircleShape) { Box(contentAlignment = Alignment.Center) { Text("👤", fontSize = 28.sp) } }
             Spacer(Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(user.name, fontWeight = FontWeight.Bold, fontSize = 17.sp, color = Color(0xFF212121))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(user.name, fontWeight = FontWeight.Bold, fontSize = 17.sp, color = Color(0xFF212121))
+                    Spacer(Modifier.width(8.dp))
+                    Surface(color = Color(0xFFF5F5F5), shape = RoundedCornerShape(4.dp)) {
+                        Text(user.volunteerId, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
+                    }
+                }
                 Text(user.profession, fontSize = 12.sp, color = themeOrange, fontWeight = FontWeight.Bold)
                 Text(user.skills.joinToString(", "), fontSize = 12.sp, color = Color.Gray)
             }

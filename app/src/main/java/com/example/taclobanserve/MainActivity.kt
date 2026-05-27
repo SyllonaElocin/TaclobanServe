@@ -21,7 +21,8 @@ data class TaclobanEvent(
     val hours: String,
     val volunteers: String,
     val area: String,
-    val tags: List<String> = emptyList(),
+    val professions: List<String> = emptyList(), // Added professions
+    val tags: List<String> = emptyList(), // Now used specifically for Skills
     val imageUri: String? = null,
     val startTime: Long = System.currentTimeMillis(),
     val endTime: Long = System.currentTimeMillis() + 3600000 // Default 1 hour duration
@@ -33,7 +34,8 @@ data class TaclobanUser(
     val profession: String,
     val skills: List<String>,
     val password: String = "password123", // Added password field
-    val joinedYear: String = "2024"
+    val joinedYear: String = "2024",
+    val volunteerId: String = "V-${(1000..9999).random()}" // Added unique volunteer ID
 )
 
 data class CheckInRequest(
@@ -90,12 +92,7 @@ class MainActivity : ComponentActivity() {
                 
                 val joinedMissions = remember { mutableStateListOf<Pair<String, TaclobanEvent>>() } // UserEmail to Event mapping
                 
-                val appUsers = remember {
-                    mutableStateListOf(
-                        TaclobanUser("Juan Dela Cruz", "juan@example.com", "Medical & Healthcare", listOf("First Aid", "CPR"), "password123", "2021"),
-                        TaclobanUser("Maria Santos", "maria@example.com", "Education & Training", listOf("Teaching", "Tutoring"), "password123", "2022")
-                    )
-                }
+                val appUsers = remember { mutableStateListOf<TaclobanUser>() }
                 
                 val checkInRequests = remember { mutableStateListOf<CheckInRequest>() }
 
